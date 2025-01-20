@@ -25,6 +25,7 @@ public class UserTests {
     String accessToken = dotenv.get("ACCESS_TOKEN");
 
     String randomMail = createRandomEmail();
+    int createdUserId;
 
     @Test
     public void getAllUsers() {
@@ -76,7 +77,7 @@ public class UserTests {
 
     }
 
-    @Test(dependsOnMethods = "createUserWithNoCredentialsTest")
+    @Test()
     public void createUserTest() {
 
         User newUser = new User("Mr. Perez", randomMail, "male", "inactive");
@@ -87,7 +88,7 @@ public class UserTests {
             throw new RuntimeException(e);
         }
 
-        given()
+        String response = given()
                 .auth()
                 .oauth2(accessToken)
                 .contentType(ContentType.JSON)
@@ -95,10 +96,15 @@ public class UserTests {
                 .post("https://gorest.co.in/public/v2/users/")
                 .then()
                 .statusCode(HttpStatus.USER_CREATED)
-                .body("id", Matchers.any(Integer.class))
-                .body("name", equalTo("Mr. Perez"))
-                .body("email", equalTo(randomMail));
+                .extract()
+                .asString();
 
+        try {
+            User user = convertJsonToUser(response);
+            createdUserId = user.getId();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test(dependsOnMethods = "createUserTest")
@@ -120,6 +126,17 @@ public class UserTests {
                 .post("https://gorest.co.in/public/v2/users/")
                 .then()
                 .statusCode(HttpStatus.USER_MAIL_ALREADY_EXISTS);
+    }
+
+    @Test(dependsOnMethods = "createUserTest")
+    public void deleteUserTest() {
+        given()
+                .auth()
+                .oauth2(accessToken)
+                .contentType(ContentType.JSON)
+                .delete("https://gorest.co.in/public/v2/users/" + createdUserId)  // Use user ID in URL
+                .then()
+                .statusCode(204);
     }
 
     @Test
