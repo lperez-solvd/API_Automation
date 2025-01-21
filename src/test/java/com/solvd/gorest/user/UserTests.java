@@ -2,12 +2,16 @@ package com.solvd.gorest.user;
 
 import com.solvd.gorest.User;
 import com.solvd.gorest.utils.HttpStatus;
+import freemarker.template.TemplateException;
 import io.github.cdimascio.dotenv.Dotenv;
 import io.restassured.http.ContentType;
-import org.hamcrest.Matchers;
+import io.restassured.path.json.JsonPath;
+import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
@@ -78,33 +82,29 @@ public class UserTests {
     }
 
     @Test()
-    public void createUserTest() {
+    public void createUserTest() throws Exception {
 
-        User newUser = new User("Mr. Perez", randomMail, "male", "inactive");
-        String userToJson;
-        try {
-            userToJson = convertUserToJson(newUser);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        String newUser = replaceEmailPlaceholder("src/test/resources/com.solvd.gorest/request/CreateUserRequest.json", randomMail);
 
-        String response = given()
+        Response response = given()
                 .auth()
                 .oauth2(accessToken)
                 .contentType(ContentType.JSON)
-                .body(userToJson)
-                .post("https://gorest.co.in/public/v2/users/")
-                .then()
-                .statusCode(HttpStatus.USER_CREATED)
-                .extract()
-                .asString();
+                .body(newUser)
+                .post("https://gorest.co.in/public/v2/users/");
 
-        try {
-            User user = convertJsonToUser(response);
-            createdUserId = user.getId();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        response
+                .then()
+                .statusCode(HttpStatus.USER_CREATED);
+
+
+        String generatedId = response.jsonPath().getString("id");
+        String updatedTemplate = replaceResponsePlaceholders("src/test/resources/com.solvd.gorest/request/CreateUserResponse.json", generatedId, randomMail);
+        String preparedResponse = response.getBody().asString();
+
+        Assert.assertEquals(convertJsonToUser(preparedResponse), convertJsonToUser(updatedTemplate), "The response is not the expected");
+
+
     }
 
     @Test(dependsOnMethods = "createUserTest")

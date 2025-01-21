@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Objects;
+
 public class User {
 
     private int id;
@@ -77,5 +79,28 @@ public class User {
     @Override
     public String toString() {
         return "User{id=" + id + ", name='" + name + "', email='" + email + "', gender='" + gender + "', status='" + status + "'}";
+    }
+
+    // Overriding equals method to compare relevant fields
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        User user = (User) obj;
+        return id == user.id &&
+                Objects.equals(name, user.name) &&
+                Objects.equals(email, user.email) &&
+                Objects.equals(gender, user.gender) &&
+                Objects.equals(status, user.status);
+    }
+
+    // Overriding hashCode method to generate a hash code based on relevant fields
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, email, gender, status);
     }
 }
