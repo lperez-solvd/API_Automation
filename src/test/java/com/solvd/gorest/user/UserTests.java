@@ -5,9 +5,7 @@ import com.solvd.gorest.utils.HttpStatus;
 import freemarker.template.TemplateException;
 import io.github.cdimascio.dotenv.Dotenv;
 import io.restassured.http.ContentType;
-import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
-import io.restassured.response.ValidatableResponse;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -30,36 +28,34 @@ public class UserTests {
 
     String randomMail = createRandomEmail();
     int createdUserId;
+    User firstUserFromResponse; // getUserById method needs to update the user that search for every time suite runs
 
-    @Test
-    public void getAllUsers() {
-        String jsonResponse = given()
-                .get("https://gorest.co.in/public/v2/users")
-                .then()
-                .statusCode(HttpStatus.USER_OK)
-                .extract()
-                .asString();
+    @Test(description = "Will get all the users but only page 1")
+    public void getAllUsersByPage() throws Exception {
+        Response response = given().get("https://gorest.co.in/public/v2/users");
+        int numberOfResultsPerPage = Integer.parseInt(response.getHeader("X-Pagination-Limit"));
+        response.then().statusCode(HttpStatus.USER_OK);
 
         List<User> users = null;
-        try {
-            users = convertJsonToUsers(jsonResponse);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        Assert.assertEquals(users.size(), 10, "The number of users is not the expected");
+        users = convertJsonToUsers(response.then().extract().asString());
+        firstUserFromResponse = users.getFirst();
+        Assert.assertEquals(users.size(), numberOfResultsPerPage, "The number of users is not the expected");
     }
 
-    @Test
-    public void getUserByNumber() {
-        given()
-                .get("https://gorest.co.in/public/v2/users/7646357")
-                .then()
-                .statusCode(HttpStatus.USER_OK)
-                .body("id", equalTo(7646357))
-                .body("name", equalTo("Dwaipayana Achari"))
-                .body("email", equalTo("achari_dwaipayana@flatley-luettgen.test"))
-                .body("gender", equalTo("male"))
-                .body("status", equalTo("active"));
+    @Test(dependsOnMethods = "getAllUsersByPage")
+    public void getUserById() throws Exception {
+        int idToSearchFor = firstUserFromResponse.getId();
+
+        Response response =
+                given()
+                        .get("https://gorest.co.in/public/v2/users/" + idToSearchFor);
+
+        response.then().statusCode(HttpStatus.USER_OK);
+
+        String preparedResponse = response.getBody().asString();
+
+        Assert.assertEquals(convertJsonToUser(preparedResponse), firstUserFromResponse, "The response is not the expected");
+
     }
 
     @Test
@@ -84,7 +80,7 @@ public class UserTests {
     @Test()
     public void createUserTest() throws Exception {
 
-        String newUser = replaceEmailPlaceholder("src/test/resources/com.solvd.gorest/request/CreateUserRequest.json", randomMail);
+        String newUser = replaceEmailPlaceholder("src/test/resources/com.solvd.gorest/json/post/CreateUserRequest.json", randomMail);
 
         Response response = given()
                 .auth()
@@ -99,7 +95,7 @@ public class UserTests {
 
 
         String generatedId = response.jsonPath().getString("id");
-        String updatedTemplate = replaceResponsePlaceholders("src/test/resources/com.solvd.gorest/request/CreateUserResponse.json", generatedId, randomMail);
+        String updatedTemplate = replaceResponsePlaceholders("src/test/resources/com.solvd.gorest/json/post/CreateUserResponse.json", generatedId, randomMail);
         String preparedResponse = response.getBody().asString();
 
         Assert.assertEquals(convertJsonToUser(preparedResponse), convertJsonToUser(updatedTemplate), "The response is not the expected");
@@ -140,45 +136,52 @@ public class UserTests {
     }
 
     @Test
-    public void modifyUserTests() {
+    public void modifyUserTest() throws Exception {
 
-        User newUser = new User("Mr. Perez2", randomMail, "male", "inactive");
-        String userToJson;
-        try {
-            userToJson = convertUserToJson(newUser);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        randomMail = "NEW" + randomMail; // Modify the random mail
+        String newUser = replaceEmailPlaceholder("src/test/resources/com.solvd.gorest/json/patch/CreateUserReq.json", randomMail);
 
         String response = given()
                 .auth()
                 .oauth2(accessToken)
                 .contentType(ContentType.JSON)
-                .body(userToJson)
+                .body(newUser)
                 .post("https://gorest.co.in/public/v2/users/")
                 .then()
                 .statusCode(HttpStatus.USER_CREATED)
                 .extract()
                 .asString();
 
-        User user = null;
-        try {
-            user = convertJsonToUser(response);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        User user = convertJsonToUser(response);
 
-        assert user != null;
-        given()
+        Response patchResponse = given()
                 .auth()
                 .oauth2(accessToken)
-                .body(user) // Send the updated User object as the body
-                .contentType("application/json") // Set content type to JSON
-                .patch("https://gorest.co.in/public/v2/users/" + user.getId()) // Send PUT request with user ID
+                .body(user)
+                .contentType("application/json")
+                .patch("https://gorest.co.in/public/v2/users/" + user.getId());
+
+        patchResponse
                 .then()
                 .statusCode(HttpStatus.USER_OK);
 
+
+        String expectedResponse = replaceResponsePlaceholders("src/test/resources/com.solvd.gorest/json/patch/modifyUserRes.json", String.valueOf(user.getId()), randomMail);
+        Assert.assertEquals(convertJsonToUser(expectedResponse), convertJsonToUser(patchResponse.then().extract().asString()), "The response is not the expected");
+
     }
+
+
+    @Test
+    public void createPostTest() {
+
+    }
+
+    @Test
+    public void commentPostTest() {
+
+    }
+
 
     // Helper
     private static String createRandomEmail() {

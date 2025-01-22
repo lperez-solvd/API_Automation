@@ -1,6 +1,0 @@
-{
-  "name": "Mr. Perez",
-  "email": "${random_mail}",
-  "gender": "male",
-  "status": "active"
-}
