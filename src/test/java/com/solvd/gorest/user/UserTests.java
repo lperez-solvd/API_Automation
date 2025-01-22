@@ -2,20 +2,17 @@ package com.solvd.gorest.user;
 
 import com.solvd.gorest.User;
 import com.solvd.gorest.utils.HttpStatus;
-import freemarker.template.TemplateException;
 import io.github.cdimascio.dotenv.Dotenv;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
 import static com.solvd.gorest.utils.Mappers.*;
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
 
 
 public class UserTests {
@@ -29,6 +26,8 @@ public class UserTests {
     String randomMail = createRandomEmail();
     int createdUserId;
     User firstUserFromResponse; // getUserById method needs to update the user that search for every time suite runs
+    int createdPostId;
+    int validPostId;
 
     @Test(description = "Will get all the users but only page 1")
     public void getAllUsersByPage() throws Exception {
@@ -95,6 +94,7 @@ public class UserTests {
 
 
         String generatedId = response.jsonPath().getString("id");
+        createdUserId = Integer.parseInt(generatedId);
         String updatedTemplate = replaceResponsePlaceholders("src/test/resources/com.solvd.gorest/json/post/CreateUserResponse.json", generatedId, randomMail);
         String preparedResponse = response.getBody().asString();
 
@@ -124,7 +124,7 @@ public class UserTests {
                 .statusCode(HttpStatus.USER_MAIL_ALREADY_EXISTS);
     }
 
-    @Test(dependsOnMethods = "createUserTest")
+    @Test(dependsOnMethods = "createUserTest", priority = 4)
     public void deleteUserTest() {
         given()
                 .auth()
@@ -135,7 +135,7 @@ public class UserTests {
                 .statusCode(204);
     }
 
-    @Test
+    @Test(priority = 5)
     public void modifyUserTest() throws Exception {
 
         randomMail = "NEW" + randomMail; // Modify the random mail
@@ -172,14 +172,58 @@ public class UserTests {
     }
 
 
-    @Test
-    public void createPostTest() {
+    @Test(dependsOnMethods = "createUserTest", priority = 4)
+    public void createPostTest() throws Exception {
+
+        String request = replaceNewPostReqPlaceholders("src/test/resources/com.solvd.gorest/json/post/createNewPostReq.json", String.valueOf(createdUserId));
+
+        Response response = given()
+                .auth()
+                .oauth2(accessToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("https://gorest.co.in/public/v2/users/" + createdUserId + "/posts");
+
+
+        response.then().statusCode(HttpStatus.USER_CREATED);
+
+        String generatedId = response.jsonPath().getString("id");
+        createdPostId = Integer.parseInt(generatedId);
+        String updatedTemplate = replaceNewPostResPlaceholders("src/test/resources/com.solvd.gorest/json/post/createNewPostRes.json", String.valueOf(createdUserId), generatedId);
+        String preparedResponse = response.getBody().asString();
+
+        Assert.assertEquals(convertJsonToPost(preparedResponse), convertJsonToPost(updatedTemplate), "The response is not the expected");
 
     }
 
-    @Test
-    public void commentPostTest() {
+    @Test(dependsOnMethods = "createPostTest", priority = 5)
+    public void commentPostTest() throws Exception {
 
+        String request = replacePlaceholders("src/test/resources/com.solvd.gorest/json/post/createNewCommentReq.json", "post_id", String.valueOf(createdPostId));
+
+        Response response = given()
+                .auth()
+                .oauth2(accessToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .post("https://gorest.co.in/public/v2/posts/" + validPostId + "/comments");
+
+        System.out.println(response.then().extract().asString());
+        response.then().statusCode(HttpStatus.USER_CREATED);
+        String generatedId = response.jsonPath().getString("id");
+        String updatedTemplate = replacePlaceholders("src/test/resources/com.solvd.gorest/json/post/createNewCommentRes.json", "id", generatedId, "post_id", String.valueOf(validPostId));
+        String preparedResponse = response.getBody().asString();
+
+        Assert.assertEquals(convertJsonToComment(preparedResponse), convertJsonToComment(updatedTemplate), "The response is not the expected");
+
+    }
+
+    @Test(priority = 4)
+    public void getAllPostsTest() {
+        Response response = given().get("https://gorest.co.in/public/v2/posts/");
+        response.then().statusCode(HttpStatus.USER_OK);
+
+        validPostId = response.jsonPath().getInt("[0].id");
     }
 
 

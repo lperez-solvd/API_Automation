@@ -2,6 +2,8 @@ package com.solvd.gorest.utils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.solvd.gorest.Comment;
+import com.solvd.gorest.Post;
 import com.solvd.gorest.User;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
@@ -22,12 +24,25 @@ public class Mappers {
 
     public static User convertJsonToUser(String jsonResponse) throws Exception {
 
-        return objectMapper.readValue(jsonResponse, User.class); // Deserialize JSON to User (including the id)
+        return objectMapper.readValue(jsonResponse, User.class);
+    }
+
+    public static Post convertJsonToPost(String jsonResponse) throws Exception {
+        return objectMapper.readValue(jsonResponse, Post.class);
+    }
+
+    public static Comment convertJsonToComment(String jsonResponse) throws Exception {
+        return objectMapper.readValue(jsonResponse, Comment.class);
     }
 
     public static List<User> convertJsonToUsers(String jsonResponse) throws Exception {
-        // Deserialize JSON to List<User> (including the id)
+
         return objectMapper.readValue(jsonResponse, new TypeReference<List<User>>() {
+        });
+    }
+
+    public static List<Post> convertJsonToPosts(String jsonResponse) throws Exception {
+        return objectMapper.readValue(jsonResponse, new TypeReference<List<Post>>() {
         });
     }
 
@@ -90,6 +105,90 @@ public class Mappers {
 
         // Return the processed JSON string (ready for use in HTTP request body or further validation)
         return writer.toString();
+    }
+
+    public static String replaceNewPostReqPlaceholders(String filePath, String userId) throws IOException, TemplateException {
+
+        File jsonFile = new File(filePath);
+        FileReader fileReader = new FileReader(jsonFile);
+
+        Configuration cfg = new Configuration(Configuration.VERSION_2_3_31);
+        cfg.setDefaultEncoding("UTF-8");
+
+        Template template = new Template("jsonTemplate", fileReader, cfg);
+
+        Map<String, Object> context = new HashMap<>();
+        context.put("user_id", userId);
+
+        StringWriter writer = new StringWriter();
+        template.process(context, writer);
+
+        return writer.toString();
+    }
+
+    public static String replaceNewPostResPlaceholders(String filePath, String userId, String postId) throws IOException, TemplateException {
+
+        File jsonFile = new File(filePath);
+        FileReader fileReader = new FileReader(jsonFile);
+
+        Configuration cfg = new Configuration(Configuration.VERSION_2_3_31);
+        cfg.setDefaultEncoding("UTF-8");
+
+        Template template = new Template("jsonTemplate", fileReader, cfg);
+
+        Map<String, Object> context = new HashMap<>();
+        context.put("user_id", userId);
+        context.put("post_id", postId);
+
+        StringWriter writer = new StringWriter();
+        template.process(context, writer);
+
+        return writer.toString();
+    }
+
+    // generic methods
+    public static String replacePlaceholders(String filePath, String placeholder1Name, String placeholder1Value, String placeholder2Name, String placeholder2Value) throws IOException, TemplateException {
+
+        File jsonFile = new File(filePath);
+        FileReader fileReader = new FileReader(jsonFile);
+
+        Configuration cfg = new Configuration(Configuration.VERSION_2_3_31);
+        cfg.setDefaultEncoding("UTF-8");
+
+        Template template = new Template("jsonTemplate", fileReader, cfg);
+
+        Map<String, Object> context = new HashMap<>();
+        context.put(placeholder1Name, placeholder1Value);
+        context.put(placeholder2Name, placeholder2Value);
+
+        StringWriter writer = new StringWriter();
+        template.process(context, writer);
+
+        return writer.toString();
+    }
+
+    public static String replacePlaceholders(String filePath, String placeholder1Name, String placeholder1Value) throws IOException, TemplateException {
+
+        File jsonFile = new File(filePath);
+        FileReader fileReader = new FileReader(jsonFile);
+
+        Configuration cfg = new Configuration(Configuration.VERSION_2_3_31);
+        cfg.setDefaultEncoding("UTF-8");
+
+        Template template = new Template("jsonTemplate", fileReader, cfg);
+
+        Map<String, Object> context = new HashMap<>();
+        context.put(placeholder1Name, placeholder1Value);
+
+        StringWriter writer = new StringWriter();
+        template.process(context, writer);
+
+        return writer.toString();
+    }
+
+    public static String convertJsonFileToString(String filePath) throws IOException {
+        File jsonFile = new File(filePath);
+        return objectMapper.writeValueAsString(objectMapper.readTree(jsonFile)); // Convert the file to JSON string
     }
 
 }

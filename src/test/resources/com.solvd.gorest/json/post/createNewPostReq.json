@@ -1,0 +1,5 @@
+{
+  "user_id": "${user_id}",
+  "title": "This post",
+  "body": "This is a test posts from a created user"
+}
