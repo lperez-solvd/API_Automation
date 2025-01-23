@@ -9,13 +9,12 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.List;
-import java.util.Random;
 
 import static com.solvd.gorest.utils.Mappers.*;
 import static io.restassured.RestAssured.given;
 
 
-public class UserTests {
+public class RestTests {
 
     // Load environment variables from the .env file
     Dotenv dotenv = Dotenv.load();
@@ -23,9 +22,10 @@ public class UserTests {
     // Retrieve the "ACCESS_TOKEN" environment variable
     String accessToken = dotenv.get("ACCESS_TOKEN");
 
+    // Suite shared attributes
     String randomMail = createRandomEmail();
     int createdUserId;
-    User firstUserFromResponse; // getUserById method needs to update the user that search for every time suite runs
+    User firstUserFromResponse;
     int createdPostId;
     int validPostId;
 
@@ -226,22 +226,4 @@ public class UserTests {
         validPostId = response.jsonPath().getInt("[0].id");
     }
 
-
-    // Helper
-    private static String createRandomEmail() {
-        String characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        Random random = new Random();
-
-        // Generate a random username with 10 characters
-        StringBuilder username = new StringBuilder();
-        for (int i = 0; i < 10; i++) {
-            username.append(characters.charAt(random.nextInt(characters.length())));
-        }
-
-        // Randomly select a domain
-        String[] domains = {"gmail.com", "yahoo.com", "outlook.com", "hotmail.com"};
-        String domain = domains[random.nextInt(domains.length)];
-
-        return username.toString() + "@" + domain;
-    }
 }

@@ -1,0 +1,104 @@
+package com.solvd.gorest.user;
+
+import com.solvd.gorest.User;
+import com.solvd.gorest.utils.HttpStatus;
+import io.github.cdimascio.dotenv.Dotenv;
+import io.restassured.http.ContentType;
+import io.restassured.response.Response;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.util.List;
+
+import static com.solvd.gorest.utils.Mappers.*;
+import static io.restassured.RestAssured.given;
+
+public class GraphQLTests {
+
+    // Load environment variables from the .env file
+    Dotenv dotenv = Dotenv.load();
+    String accessToken = dotenv.get("ACCESS_TOKEN");
+    int firstUserId;
+    int createdUserId;
+
+    String randomMail = createRandomEmail();
+
+    @Test (priority = 1)
+    public void getAllUsersByPageTest() {
+
+        String query = "{ \"query\": \"query Users { users { nodes { email gender id name status } } }\" }";
+
+        Response response = given().auth().oauth2(accessToken).contentType(ContentType.JSON).body(query).post("https://gorest.co.in/public/v2/graphql");
+
+        response.then().statusCode(HttpStatus.GRAPHQL_OK);
+
+        List<User> users = response.body().jsonPath().getList("data.users.nodes", User.class);
+        firstUserId = users.getFirst().getId();
+
+        Assert.assertEquals(users.size(), 10, "The number of users is not the expected");
+
+    }
+
+    @Test(dependsOnMethods = "getAllUsersByPageTest", priority = 2)
+    public void getUserByIdTest() throws IOException {
+
+        String query = String.format("{ \"query\": \"{ user(id: %s) { id name email } }\" }", firstUserId);
+
+        Response response = given().auth().oauth2(accessToken).contentType(ContentType.JSON).body(query).post("https://gorest.co.in/public/v2/graphql");
+
+        response.then().statusCode(HttpStatus.GRAPHQL_OK);
+
+        User user = response.body().jsonPath().getObject("data.user", User.class);
+
+        Assert.assertEquals(firstUserId, user.getId(), "The response user id is not the expected");
+
+    }
+
+    @Test (priority = 2)
+    public void createUserTest() throws Exception {
+
+        String jsonRequest = replaceEmailPlaceholder("src/test/resources/com.solvd.gorest/json/post/CreateUserRequest.json", randomMail);
+        User user = convertJsonToUser(jsonRequest);
+
+        String query = String.format("{ \"query\": \"mutation CreateUser { createUser(input: { name: \\\"%s\\\" email: \\\"%s\\\" gender: \\\"%s\\\"  status: \\\"%s\\\"  clientMutationId: \\\"123123123\\\" }) { clientMutationId user { email name status id gender } } }\" }", user.getName(), user.getEmail(), user.getGender(), user.getStatus());
+
+        Response response = given()
+                .auth()
+                .oauth2(accessToken)
+                .contentType(ContentType.JSON)
+                .body(query)
+                .post("https://gorest.co.in/public/v2/graphql");
+
+        response.then().statusCode(HttpStatus.GRAPHQL_OK);
+
+        User userResponse = response.body().jsonPath().getObject("data.createUser.user", User.class);
+        user.setId(userResponse.getId());
+        createdUserId = userResponse.getId();
+
+        Assert.assertEquals(user, userResponse, "The response is not the expected");
+
+    }
+
+    @Test(dependsOnMethods = "createUserTest", priority = 3)
+    public void deleteUser() {
+
+        String query = String.format("{ \"query\": \"mutation DeleteUser { deleteUser(input: { id: %s }) { user {id} } }\" }", createdUserId);
+
+
+        Response response = given()
+                .auth()
+                .oauth2(accessToken)
+                .contentType(ContentType.JSON)
+                .body(query)
+                .post("https://gorest.co.in/public/v2/graphql");
+
+        response.then().statusCode(HttpStatus.GRAPHQL_OK);
+
+        Assert.assertEquals(response.jsonPath().getInt("data.deleteUser.user.id"), createdUserId, "The deleted user id is not the expected");
+    }
+
+
+
+
+}
