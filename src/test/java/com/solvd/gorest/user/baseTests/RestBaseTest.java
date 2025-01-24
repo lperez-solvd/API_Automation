@@ -54,7 +54,7 @@ public abstract class RestBaseTest {
     }
 
 
-    protected void deleteRequest(int userId) {
+    protected void deleteRequest() {
 
         Response response = given()
                 .auth()

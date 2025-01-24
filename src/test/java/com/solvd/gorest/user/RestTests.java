@@ -95,7 +95,7 @@ public class RestTests extends RestBaseTest {
 
     @Test(dependsOnMethods = "createUserTest", priority = 4)
     public void deleteUserTest() {
-        deleteRequest(createdUserId);
+        deleteRequest();
     }
 
     @Test(priority = 5)
