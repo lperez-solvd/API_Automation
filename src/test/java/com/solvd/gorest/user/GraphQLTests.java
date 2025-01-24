@@ -7,7 +7,6 @@ import io.restassured.response.Response;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.io.IOException;
 import java.util.List;
 
 import static com.solvd.gorest.utils.Mappers.*;
