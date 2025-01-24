@@ -1,10 +1,8 @@
 package com.solvd.gorest.user;
 
 import com.solvd.gorest.User;
+import com.solvd.gorest.user.baseTests.GraphQLBaseTest;
 import com.solvd.gorest.utils.HttpStatus;
-import freemarker.template.TemplateException;
-import io.github.cdimascio.dotenv.Dotenv;
-import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -13,26 +11,17 @@ import java.io.IOException;
 import java.util.List;
 
 import static com.solvd.gorest.utils.Mappers.*;
-import static io.restassured.RestAssured.given;
 
-public class GraphQLTests {
 
-    // Load environment variables from the .env file
-    Dotenv dotenv = Dotenv.load();
-    String accessToken = dotenv.get("ACCESS_TOKEN");
-    int firstUserId;
-    int createdUserId;
+public class GraphQLTests extends GraphQLBaseTest {
 
-    String randomMail = createRandomEmail();
 
     @Test(priority = 1)
     public void getAllUsersByPageTest() {
 
         String query = "{ \"query\": \"query Users { users { nodes { email gender id name status } } }\" }";
 
-        Response response = given().auth().oauth2(accessToken).contentType(ContentType.JSON).body(query).post("https://gorest.co.in/public/v2/graphql");
-
-        response.then().statusCode(HttpStatus.GRAPHQL_OK);
+        Response response = sendRequest(query);
 
         List<User> users = response.body().jsonPath().getList("data.users.nodes", User.class);
         firstUserId = users.getFirst().getId();
@@ -42,11 +31,11 @@ public class GraphQLTests {
     }
 
     @Test(dependsOnMethods = "getAllUsersByPageTest", priority = 2)
-    public void getUserByIdTest() throws IOException {
+    public void getUserByIdTest() {
 
         String query = String.format("{ \"query\": \"{ user(id: %s) { id name email } }\" }", firstUserId);
 
-        Response response = given().auth().oauth2(accessToken).contentType(ContentType.JSON).body(query).post("https://gorest.co.in/public/v2/graphql");
+        Response response = sendRequest(query);
 
         response.then().statusCode(HttpStatus.GRAPHQL_OK);
 
@@ -64,12 +53,7 @@ public class GraphQLTests {
 
         String query = String.format("{ \"query\": \"mutation CreateUser { createUser(input: { name: \\\"%s\\\" email: \\\"%s\\\" gender: \\\"%s\\\"  status: \\\"%s\\\"  clientMutationId: \\\"123123123\\\" }) { clientMutationId user { email name status id gender } } }\" }", user.getName(), user.getEmail(), user.getGender(), user.getStatus());
 
-        Response response = given()
-                .auth()
-                .oauth2(accessToken)
-                .contentType(ContentType.JSON)
-                .body(query)
-                .post("https://gorest.co.in/public/v2/graphql");
+        Response response = sendRequest(query);
 
         response.then().statusCode(HttpStatus.GRAPHQL_OK);
 
@@ -86,13 +70,7 @@ public class GraphQLTests {
 
         String query = String.format("{ \"query\": \"mutation DeleteUser { deleteUser(input: { id: %s }) { user {id} } }\" }", createdUserId);
 
-
-        Response response = given()
-                .auth()
-                .oauth2(accessToken)
-                .contentType(ContentType.JSON)
-                .body(query)
-                .post("https://gorest.co.in/public/v2/graphql");
+        Response response = sendRequest(query);
 
         response.then().statusCode(HttpStatus.GRAPHQL_OK);
 
@@ -108,13 +86,7 @@ public class GraphQLTests {
         String query = String.format("{ \"query\": \"mutation UpdateUser { updateUser(input: { id: %d name: \\\"%s\\\" email: \\\"%s\\\" gender: \\\"%s\\\" status: \\\"%s\\\" clientMutationId: \\\"123123123\\\" }) { clientMutationId user { email name status id gender } } }\" }",
                 createdUserId, userRequest.getName(), userRequest.getEmail(), userRequest.getGender(), userRequest.getStatus());
 
-
-        Response response = given()
-                .auth()
-                .oauth2(accessToken)
-                .contentType(ContentType.JSON)
-                .body(query)
-                .post("https://gorest.co.in/public/v2/graphql");
+        Response response = sendRequest(query);
 
         response.then().statusCode(HttpStatus.GRAPHQL_OK);
 
