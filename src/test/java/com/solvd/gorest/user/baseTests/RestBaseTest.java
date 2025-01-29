@@ -2,6 +2,7 @@ package com.solvd.gorest.user.baseTests;
 
 import com.solvd.gorest.User;
 import com.solvd.gorest.user.service.RestService;
+import com.solvd.gorest.user.utils.CustomAssertions;
 import com.solvd.gorest.utils.PlaceholdersUtils;
 
 import static com.solvd.gorest.utils.Mappers.createRandomEmail;
@@ -19,6 +20,7 @@ public abstract class RestBaseTest {
     protected RestService restService = new RestService();
 
     protected PlaceholdersUtils placeholdersUtils = new PlaceholdersUtils();
+    protected CustomAssertions customAssertions = new CustomAssertions();
 
 
 

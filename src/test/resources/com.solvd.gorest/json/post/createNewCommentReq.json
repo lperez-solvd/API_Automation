@@ -1,5 +1,5 @@
 {
-  "post_id": "${post_id}",
+  "post": "${post_id}",
   "name": "Lucas",
   "email": "lucas@solvd.com",
   "body": "This is my comment"

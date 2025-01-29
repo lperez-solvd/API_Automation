@@ -172,7 +172,7 @@ public class RestService {
     }
 
     public String prepareCreateCommentResponse(int commentId, int postId) throws TemplateException, IOException {
-        return placeholderUtils.replacePlaceholders(createCommentResponseTemplate, "comment_id", String.valueOf(commentId), "post_id", String.valueOf(postId));
+        return placeholderUtils.replacePlaceholders(createCommentResponseTemplate, "id", String.valueOf(commentId), "post_id", String.valueOf(postId));
     }
 
     public User convertJsonToUser(String json) throws Exception {

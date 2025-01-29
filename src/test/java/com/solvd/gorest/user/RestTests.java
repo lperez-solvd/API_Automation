@@ -2,15 +2,12 @@ package com.solvd.gorest.user;
 
 import com.solvd.gorest.User;
 import com.solvd.gorest.user.baseTests.RestBaseTest;
-import com.solvd.gorest.utils.HttpStatus;
 import freemarker.template.TemplateException;
 import io.restassured.response.Response;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.util.List;
-
 
 
 public class RestTests extends RestBaseTest {
@@ -26,8 +23,10 @@ public class RestTests extends RestBaseTest {
         List<User> users = restService.convertResponseToUsers(response);
         firstUserFromResponse = users.getFirst();
 
-        Assert.assertEquals(restService.getStatus(response), HttpStatus.USER_OK, "The status is not the expected");
-        Assert.assertEquals(users.size(), numberOfResultsPerPage, "The number of users is not the expected");
+
+        customAssertions.assertStatusOk(restService.getStatus(response));
+        customAssertions.assertEquals(users.size(), numberOfResultsPerPage);
+
     }
 
     @Test(dependsOnMethods = "getAllUsersByPage")
@@ -37,8 +36,8 @@ public class RestTests extends RestBaseTest {
 
         Response response = restService.getRequest(idToSearchFor);
 
-        Assert.assertEquals(restService.getStatus(response), HttpStatus.USER_OK, "The status is not the expected");
-        Assert.assertEquals(restService.convertResponseToUser(response), firstUserFromResponse, "The response is not the expected");
+        customAssertions.assertStatusOk(restService.getStatus(response));
+        customAssertions.assertUsers(restService.convertResponseToUser(response), firstUserFromResponse);
 
     }
 
@@ -49,7 +48,7 @@ public class RestTests extends RestBaseTest {
 
         Response response = restService.postRequest(newUser, false);
 
-        Assert.assertEquals(restService.getStatus(response), HttpStatus.USER_NO_AUTH_TOKEN, "The status is not the expected");
+        customAssertions.assertStatusNoCredentials(restService.getStatus(response));
 
     }
 
@@ -64,8 +63,8 @@ public class RestTests extends RestBaseTest {
 
         String updatedTemplate = restService.preparePostResponse(createdUserId, randomMail);
 
-        Assert.assertEquals(restService.getStatus(response), HttpStatus.USER_CREATED, "The status is not the expected");
-        Assert.assertEquals(restService.convertResponseToUser(response), restService.convertJsonToUser(updatedTemplate), "The response is not the expected");
+        customAssertions.assertStatusUserCreated(restService.getStatus(response));
+        customAssertions.assertUsers(restService.convertResponseToUser(response), restService.convertJsonToUser(updatedTemplate));
 
     }
 
@@ -76,7 +75,7 @@ public class RestTests extends RestBaseTest {
 
         Response response = restService.postRequest(newUser, true);
 
-        Assert.assertEquals(restService.getStatus(response), HttpStatus.USER_MAIL_ALREADY_EXISTS, "The status is not the expected");
+        customAssertions.assertStatusUserAlreadyExists(restService.getStatus(response));
 
     }
 
@@ -84,7 +83,7 @@ public class RestTests extends RestBaseTest {
     public void deleteUserTest() {
         Response response = restService.deleteRequest(createdUserId);
 
-        Assert.assertEquals(restService.getStatus(response), HttpStatus.USER_DELETED, "The status is not the expected");
+        customAssertions.assertStatusUserDeleted(restService.getStatus(response));
 
     }
 
@@ -97,19 +96,19 @@ public class RestTests extends RestBaseTest {
 
         Response response = restService.postRequest(newUser, true);
 
-        Assert.assertEquals(restService.getStatus(response), HttpStatus.USER_CREATED, "The status is not the expected");
+
+        customAssertions.assertStatusUserCreated(restService.getStatus(response));
 
 
         User user = restService.convertResponseToUser(response);
 
         Response patchResponse = restService.patchRequest(user);
 
-        Assert.assertEquals(restService.getStatus(patchResponse), HttpStatus.USER_OK, "The status is not the expected");
-
-
         String expectedResponse = restService.preparePatchResponse(user.getId(), randomMail);
 
-        Assert.assertEquals(restService.convertJsonToUser(expectedResponse), restService.convertResponseToUser(patchResponse), "The response is not the expected");
+
+        customAssertions.assertStatusOk(restService.getStatus(patchResponse));
+        customAssertions.assertUsers(restService.convertJsonToUser(expectedResponse), restService.convertResponseToUser(patchResponse));
 
     }
 
@@ -120,31 +119,29 @@ public class RestTests extends RestBaseTest {
 
         Response response = restService.postCreationRequest(request, createdUserId);
 
-        Assert.assertEquals(restService.getStatus(response), HttpStatus.USER_CREATED, "The status is not the expected");
+        customAssertions.assertStatusUserCreated(restService.getStatus(response));
 
         createdPostId = restService.getCreatedPostId(response);
 
         String updatedTemplate = restService.prepareCreatePostResponse(createdUserId, createdPostId);
-
-        Assert.assertEquals(restService.convertResponseToPost(response), restService.convertJsonToPost(updatedTemplate), "The response is not the expected");
+        customAssertions.assertPosts(restService.convertResponseToPost(response), restService.convertJsonToPost(updatedTemplate));
 
     }
 
     @Test(dependsOnMethods = "createPostTest", priority = 5)
     public void commentPostTest() throws Exception {
 
-        String request = restService.prepareCreateCommentRequest(createdPostId);
+        String request = restService.prepareCreateCommentRequest(validPostId);
+        Response response = restService.commentCreationRequest(request, validPostId);
 
-        Response response = restService.commentCreationRequest(request, createdPostId);
-
-        Assert.assertEquals(restService.getStatus(response), HttpStatus.USER_CREATED, "The status is not the expected");
+        customAssertions.assertStatusUserCreated(restService.getStatus(response));
 
         validCommentId = restService.getCreatedUserId(response);
 
         String updatedTemplate = restService.prepareCreateCommentResponse(validCommentId, validPostId);
 
-        Assert.assertEquals(restService.convertResponseToComment(response), restService.convertJsonToComment(updatedTemplate), "The response is not the expected");
 
+        customAssertions.assertComment(restService.convertResponseToComment(response), restService.convertJsonToComment(updatedTemplate));
     }
 
     @Test(priority = 4)
@@ -153,7 +150,7 @@ public class RestTests extends RestBaseTest {
 
         validPostId = restService.getFirstPostId(response);
 
-        Assert.assertEquals(restService.getStatus(response), HttpStatus.USER_OK, "The status is not the expected");
+        customAssertions.assertStatusOk(restService.getStatus(response));
 
     }
 
