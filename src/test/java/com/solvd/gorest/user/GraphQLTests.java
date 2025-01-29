@@ -70,11 +70,11 @@ public class GraphQLTests extends GraphQLBaseTest {
 
         Response response = graphQLService.updateUser(createdUserId, requestUser);
 
-        User responseUser = graphQLService.getCreatedUserFromResponse(response);
-
-
+        User responseUser = graphQLService.getUpdatedUserFromResponse(response);
+        requestUser.setId(responseUser.getId());
 
         Assert.assertEquals(graphQLService.getStatus(response), HttpStatus.GRAPHQL_OK, "The response is not the expected");
+
         Assert.assertEquals(responseUser, requestUser, "The request and response doesn't match");
 
     }

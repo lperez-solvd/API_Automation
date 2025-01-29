@@ -101,4 +101,8 @@ public class GraphQLService {
         return response.body().jsonPath().getObject("data.createUser.user", User.class);
     }
 
+    public User getUpdatedUserFromResponse(Response response) {
+        return response.body().jsonPath().getObject("data.updateUser.user", User.class);
+    }
+
 }
