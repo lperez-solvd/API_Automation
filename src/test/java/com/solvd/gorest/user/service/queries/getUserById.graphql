@@ -1,0 +1,7 @@
+{
+  user(id: %s) {
+    id
+    name
+    email
+  }
+}

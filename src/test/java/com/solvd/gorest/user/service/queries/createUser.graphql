@@ -1,0 +1,18 @@
+mutation CreateUser {
+  createUser(input: {
+    name: "%s"
+    email: "%s"
+    gender: "%s"
+    status: "%s"
+    clientMutationId: "123123123"
+  }) {
+    clientMutationId
+    user {
+      email
+      name
+      status
+      id
+      gender
+    }
+  }
+}
