@@ -4,12 +4,10 @@ import com.solvd.gorest.User;
 import com.solvd.gorest.utils.HttpStatus;
 import com.solvd.gorest.utils.JsonMappers;
 import com.solvd.gorest.utils.PlaceholdersUtils;
-import freemarker.template.TemplateException;
 import io.github.cdimascio.dotenv.Dotenv;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 
-import java.io.IOException;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
@@ -103,6 +101,10 @@ public class GraphQLService {
 
     public User getUpdatedUserFromResponse(Response response) {
         return response.body().jsonPath().getObject("data.updateUser.user", User.class);
+    }
+
+    public int getDeletedUserId (Response response) {
+        return response.jsonPath().getInt("data.deleteUser.user.id");
     }
 
 }
